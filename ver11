@@ -1548,9 +1548,115 @@
                 for (let i = 0; i < k - 1; i++) {
                     const level = norm * (2 * i - k + 2);
                     const y = height/2 - level * height/4;
-                    
+
                     ctx.beginPath();
                     ctx.moveTo(0, y);
                     ctx.lineTo(width, y);
                     ctx.stroke();
                 }
+
+                ctx.setLineDash([]);
+            }
+
+        } // end of QAMSystem class
+
+        // Simple UI helpers -------------------------------------------------
+        let sim;
+
+        function initSimulator() {
+            sim = new QAMSystem();
+            sim.initializeCanvases();
+        }
+
+        function toggleTransmission() {
+            if (!sim) initSimulator();
+            sim.isRunning = !sim.isRunning;
+            const btn = document.getElementById('transmitBtn');
+            if (sim.isRunning) {
+                btn.textContent = 'Stop System';
+                btn.classList.add('active');
+            } else {
+                btn.textContent = 'Start System';
+                btn.classList.remove('active');
+            }
+        }
+
+        function changeModulation() {
+            if (!sim) return;
+            sim.modOrder = parseInt(document.getElementById('modOrder').value, 10);
+            sim.initializeDSP();
+            sim.initializeCanvases();
+        }
+
+        function updateSymbolRate() {
+            if (!sim) return;
+            sim.symbolRate = parseFloat(document.getElementById('symbolRate').value) * 1e6;
+            sim.samplesPerSymbol = sim.sampleRate / sim.symbolRate;
+            sim.initializeDSP();
+            sim.initializeCanvases();
+        }
+
+        function updatePulseShape() {
+            if (!sim) return;
+            sim.initializeDSP();
+            sim.initializeCanvases();
+        }
+
+        function updateRolloff() {
+            if (!sim) return;
+            sim.rolloff = parseFloat(document.getElementById('rolloff').value);
+            sim.initializeDSP();
+            sim.initializeCanvases();
+        }
+
+        function updateEbNo(val) {
+            if (!sim) return;
+            document.getElementById('ebnoValue').textContent = `${parseFloat(val).toFixed(1)} dB`;
+            sim.channel.ebNo = parseFloat(val);
+        }
+
+        function updateDelaySpread(val) {
+            if (!sim) return;
+            document.getElementById('delaySpreadValue').textContent = `${val} μs`;
+            sim.channel.delaySpread = parseFloat(val) * 1e-6;
+        }
+
+        function updateDoppler(val) {
+            if (!sim) return;
+            document.getElementById('dopplerValue').textContent = `${val} Hz`;
+            sim.channel.dopplerFreq = parseFloat(val);
+        }
+
+        function updateCFO(val) {
+            if (!sim) return;
+            document.getElementById('cfoValue').textContent = `${val} Hz`;
+            sim.channel.cfo = parseFloat(val);
+        }
+
+        function updatePhaseNoise(val) {
+            if (!sim) return;
+            document.getElementById('phaseNoiseValue').textContent = `${val} dBc/Hz`;
+            sim.channel.phaseNoise = parseFloat(val);
+        }
+
+        function updateIQImbalance(val) {
+            if (!sim) return;
+            document.getElementById('iqImbalanceValue').textContent = `${val} dB, 2°`;
+            sim.channel.iqImbalance.gain = parseFloat(val);
+        }
+
+        function resetSystem() {
+            initSimulator();
+        }
+
+        function saveMetrics() {
+            if (sim) console.log('Metrics:', sim.metrics);
+        }
+
+        window.addEventListener('load', initSimulator);
+        window.addEventListener('resize', () => {
+            if (sim) sim.initializeCanvases();
+        });
+    </script>
+</body>
+</html>
