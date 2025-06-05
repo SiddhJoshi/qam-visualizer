@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic QAM Communication System Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #00ff88, #00a8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        button {
+            padding: 12px 30px;
+            background: linear-gradient(45deg, #00ff88, #00a8ff);
+            border: none;
+            border-radius: 25px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 255, 136, 0.3);
+        }
+
+        button.active {
+            background: linear-gradient(45deg, #ff4444, #ff8844);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 8px 0;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #00ff88;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #00ff88;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 350px 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeIn 1s ease-out;
+        }
+
+        .transmitter, .receiver {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .channel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .section-title {
+            font-size: 1.4em;
+            color: #00ff88;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .data-display {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bit-stream {
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            letter-spacing: 2px;
+            color: #00ff88;
+            white-space: nowrap;
+            display: inline-block;
+        }
+
+        .bit-stream.animated {
+            animation: slideLeft 8s linear infinite;
+        }
+
+        @keyframes slideLeft {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .constellation {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            position: relative;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 168, 255, 0.3);
+        }
+
+        .waveform {
+            height: 100px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lock-status {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .lock-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .lock-item.locked {
+            border: 1px solid #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .lock-item.unlocked {
+            border: 1px solid #ff4444;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+        }
+
+        .lock-indicator {
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .locked .lock-indicator {
+            background: #00ff88;
+            color: #000;
+            animation: pulse 2s infinite;
+        }
+
+        .unlocked .lock-indicator {
+            background: #ff4444;
+            color: #fff;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .signal-flow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+        }
+
+        .signal-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, #00ff88 0%, transparent 70%);
+            border-radius: 50%;
+            top: 50%;
+            left: -10px;
+            animation: flowRight 3s linear infinite;
+        }
+
+        @keyframes flowRight {
+            to { transform: translateX(370px); }
+        }
+
+        .channel-effects {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .effect-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .effect-item.active {
+            border: 1px solid #ff8844;
+            box-shadow: 0 0 15px rgba(255, 136, 68, 0.3);
+        }
+
+        .effect-value {
+            font-size: 1.2em;
+            color: #00a8ff;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .effect-value.degraded {
+            color: #ff4444;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 25px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: #00ff88;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 21px;
+            height: 21px;
+            background: #fff;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(25px);
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .metric-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.4em;
+            color: #00a8ff;
+            font-weight: bold;
+        }
+
+        .metric-value.error {
+            color: #ff4444;
+        }
+
+        .error-bit {
+            color: #ff4444;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        .educational-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .edu-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Dynamic QAM Communication System</h1>
+            <p>Real-time visualization of digital modulation and transmission</p>
+        </header>
+
+        <div class="controls">
+            <button id="transmitBtn" onclick="toggleTransmission()">▶️ Start Transmission</button>
+            
+            <div class="control-group">
+                <label>Modulation Order:</label>
+                <select id="modOrder" onchange="changeModulation()">
+                    <option value="4">QPSK (4-QAM)</option>
+                    <option value="16" selected>16-QAM</option>
+                    <option value="64">64-QAM</option>
+                    <option value="256">256-QAM</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Channel Effects:</label>
+                <div class="toggle-switch" id="channelToggle" onclick="toggleChannel()"></div>
+            </div>
+
+            <button onclick="addNoise()">🌩️ Add Noise</button>
+            <button onclick="toggleFading()">📡 Toggle Fading</button>
+            <button onclick="resetSystem()">🔄 Reset</button>
+        </div>
+
+        <div class="main-layout">
+            <!-- Transmitter Section -->
+            <div class="panel transmitter">
+                <h2 class="section-title">📡 Transmitter</h2>
+                
+                <div class="data-display">
+                    <h3>Input Data Stream</h3>
+                    <div class="bit-stream" id="inputData">1101 0010 1110 0101 1001 1100 0110 1011</div>
+                </div>
+
+                <div class="data-display">
+                    <h3>QAM Symbols</h3>
+                    <div id="qamSymbols" style="color: #00a8ff;">Loading...</div>
+                </div>
+
+                <div class="constellation" id="txConstellation">
+                    <canvas id="txConstellationCanvas"></canvas>
+                    <div style="text-align: center; margin-top: 5px;">TX Constellation</div>
+                </div>
+
+                <div class="data-display">
+                    <h3>Baseband Signal (I/Q)</h3>
+                    <div class="waveform" id="basebandSignal">
+                        <canvas id="basebandCanvas"></canvas>
+                    </div>
+                </div>
+
+                <div class="data-display">
+                    <h3>RF Carrier Signal</h3>
+                    <div class="waveform" id="rfSignal">
+                        <canvas id="rfCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Channel Section -->
+            <div class="panel channel">
+                <h2 class="section-title">📶 Wireless Channel</h2>
+                <div class="signal-flow" id="signalFlow"></div>
+                
+                <div class="channel-effects">
+                    <div class="effect-item" id="snrEffect">
+                        <div>Signal-to-Noise Ratio</div>
+                        <input type="range" id="snrSlider" min="0" max="40" value="30" oninput="updateSNR(this.value)">
+                        <div class="effect-value" id="snrValue">30 dB</div>
+                        <div class="effect-cause" style="font-size: 0.85em; color: #888;">Distance, Rain, Atmosphere</div>
+                    </div>
+                    
+                    <div class="effect-item" id="fadingEffect">
+                        <div>Multipath Fading</div>
+                        <input type="range" id="fadingSlider" min="-20" max="0" value="-1" oninput="updateFading(this.value)">
+                        <div class="effect-value" id="fadingValue">-1.0 dB</div>
+                        <div class="effect-cause" style="font-size: 0.85em; color: #888;">Reflections, Buildings</div>
+                    </div>
+                    
+                    <div class="effect-item" id="freqEffect">
+                        <div>Frequency Offset</div>
+                        <input type="range" id="freqOffsetSlider" min="0" max="1000" value="50" oninput="updateFreqOffset(this.value)">
+                        <div class="effect-value" id="freqOffset">50 Hz</div>
+                        <div class="effect-cause" style="font-size: 0.85em; color: #888;">Doppler, Clock Drift</div>
+                    </div>
+                    
+                    <div class="effect-item" id="phaseEffect">
+                        <div>Phase Noise</div>
+                        <input type="range" id="phaseNoiseSlider" min="-100" max="-60" value="-90" oninput="updatePhaseNoise(this.value)">
+                        <div class="effect-value" id="phaseNoise">-90 dBc/Hz</div>
+                        <div class="effect-cause" style="font-size: 0.85em; color: #888;">Oscillator Instability</div>
+                    </div>
+                    
+                    <div class="effect-item" id="jitterEffect">
+                        <div>Timing Jitter</div>
+                        <input type="range" id="jitterSlider" min="0" max="10" value="1" step="0.1" oninput="updateJitter(this.value)">
+                        <div class="effect-value" id="timingJitter">±1.0 ns</div>
+                        <div class="effect-cause" style="font-size: 0.85em; color: #888;">Clock Variations</div>
+                    </div>
+                </div>
+
+                <div class="data-display" style="margin-top: 20px;">
+                    <h3>Channel Response</h3>
+                    <div class="waveform" id="channelResponse">
+                        <canvas id="channelCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Receiver Section -->
+            <div class="panel receiver">
+                <h2 class="section-title">📻 Receiver</h2>
+                
+                <div class="lock-status">
+                    <div class="lock-item" id="coarseAGC">
+                        <span>Coarse AGC Lock</span>
+                        <span class="lock-indicator">Searching...</span>
+                    </div>
+                    <div class="lock-item" id="phaseLock">
+                        <span>Phase Lock</span>
+                        <span class="lock-indicator">Searching...</span>
+                    </div>
+                    <div class="lock-item" id="dspLock">
+                        <span>DSP Lock</span>
+                        <span class="lock-indicator">Searching...</span>
+                    </div>
+                    <div class="lock-item" id="preambleLock">
+                        <span>Preamble Lock</span>
+                        <span class="lock-indicator">Searching...</span>
+                    </div>
+                </div>
+
+                <div class="data-display" style="margin-top: 20px;">
+                    <h3>Received RF Signal</h3>
+                    <div class="waveform" id="rxRfSignal">
+                        <canvas id="rxRfCanvas"></canvas>
+                    </div>
+                </div>
+
+                <div class="data-display">
+                    <h3>After Demodulation (Baseband)</h3>
+                    <div class="waveform" id="demodSignal">
+                        <canvas id="demodCanvas"></canvas>
+                    </div>
+                </div>
+
+                <div class="constellation" id="rxConstellation">
+                    <canvas id="rxConstellationCanvas"></canvas>
+                    <div style="text-align: center; margin-top: 5px;">RX Constellation</div>
+                </div>
+
+                <div class="data-display">
+                    <h3>Recovered Symbols</h3>
+                    <div id="recoveredSymbols" style="color: #00a8ff;">Waiting...</div>
+                </div>
+
+                <div class="data-display">
+                    <h3>Output Data Stream</h3>
+                    <div class="bit-stream" id="outputData">---- ---- ---- ---- ---- ---- ---- ----</div>
+                </div>
+
+                <div class="metrics">
+                    <div class="metric-item">
+                        <div>BER</div>
+                        <div class="metric-value" id="berValue">0.0000</div>
+                    </div>
+                    <div class="metric-item">
+                        <div>Errors</div>
+                        <div class="metric-value" id="errorCount">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Educational Section -->
+        <div class="educational-section">
+            <div class="edu-card panel">
+                <h3 style="color: #00ff88; margin-bottom: 15px;">📊 BER Curve</h3>
+                <canvas id="berCurve" height="200"></canvas>
+                <p style="margin-top: 10px; font-size: 0.9em;">
+                    Watch how BER changes with modulation order and channel conditions in real-time.
+                </p>
+            </div>
+
+            <div class="edu-card panel">
+                <h3 style="color: #00ff88; margin-bottom: 15px;">👁️ Eye Diagram</h3>
+                <div class="waveform" style="height: 150px;">
+                    <canvas id="eyeDiagram"></canvas>
+                </div>
+                <p style="margin-top: 10px; font-size: 0.9em;">
+                    The eye opening indicates signal quality - wider is better!
+                </p>
+            </div>
+
+            <div class="edu-card panel">
+                <h3 style="color: #00ff88; margin-bottom: 15px;">📈 Spectrum Analyzer</h3>
+                <div class="waveform" style="height: 150px;">
+                    <canvas id="spectrum"></canvas>
+                </div>
+                <p style="margin-top: 10px; font-size: 0.9em;">
+                    Real-time frequency domain view of the transmitted signal.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let isTransmitting = false;
+        let channelEnabled = false;
+        let modulationOrder = 16;
+        let animationIds = {};
+        let dataBuffer = [];
+        let symbolBuffer = [];
+        let time = 0;
+        
+        // Channel parameters
+        let channelParams = {
+            snr: 30,
+            fading: -1,
+            freqOffset: 50,
+            phaseNoise: -90,
+            jitter: 1.0
+        };
+
+        // Update functions for sliders
+        function updateSNR(value) {
+            channelParams.snr = parseFloat(value);
+            document.getElementById('snrValue').textContent = value + ' dB';
+            updateChannelImpact();
+        }
+
+        function updateFading(value) {
+            channelParams.fading = parseFloat(value);
+            document.getElementById('fadingValue').textContent = value + ' dB';
+            updateChannelImpact();
+        }
+
+        function updateFreqOffset(value) {
+            channelParams.freqOffset = parseFloat(value);
+            document.getElementById('freqOffset').textContent = value + ' Hz';
+            updateChannelImpact();
+        }
+
+        function updatePhaseNoise(value) {
+            channelParams.phaseNoise = parseFloat(value);
+            document.getElementById('phaseNoise').textContent = value + ' dBc/Hz';
+            updateChannelImpact();
+        }
+
+        function updateJitter(value) {
+            channelParams.jitter = parseFloat(value);
+            document.getElementById('timingJitter').textContent = '±' + value + ' ns';
+            updateChannelImpact();
+        }
+
+        function updateChannelImpact() {
+            if (isTransmitting) {
+                updateReceiverData();
+                updateLockStatus();
+            }
+        }
+
+        // Generate random bit stream
+        function generateBitStream(length = 32) {
+            let bits = '';
+            for (let i = 0; i < length; i++) {
+                bits += Math.random() > 0.5 ? '1' : '0';
+            }
+            return bits;
+        }
+
+        // Map bits to QAM symbols
+        function bitsToQAMSymbols(bits, order) {
+            const bitsPerSymbol = Math.log2(order);
+            const symbols = [];
+            const sqrtOrder = Math.sqrt(order);
+            
+            for (let i = 0; i < bits.length; i += bitsPerSymbol) {
+                const symbolBits = bits.substr(i, bitsPerSymbol);
+                const decimal = parseInt(symbolBits, 2);
+                
+                // Gray mapping for QAM
+                let I = Math.floor(decimal % sqrtOrder) - sqrtOrder/2 + 0.5;
+                let Q = Math.floor(decimal / sqrtOrder) - sqrtOrder/2 + 0.5;
+                
+                // Normalize
+                I = I * 2 / (sqrtOrder - 1);
+                Q = Q * 2 / (sqrtOrder - 1);
+                
+                symbols.push({ I, Q, bits: symbolBits });
+            }
+            
+            return symbols;
+        }
+
+        // Initialize system
+        function initializeSystem() {
+            // Generate initial data
+            const bits = generateBitStream();
+            dataBuffer = bits;
+            symbolBuffer = bitsToQAMSymbols(bits, modulationOrder);
+            
+            // Update displays
+            updateDataDisplay();
+            initializeCanvases();
+        }
+
+        // Update data displays
+        function updateDataDisplay() {
+            // Format bit stream
+            let formatted = '';
+            for (let i = 0; i < dataBuffer.length; i += 4) {
+                if (i > 0) formatted += ' ';
+                formatted += dataBuffer.substr(i, 4);
+            }
+            document.getElementById('inputData').textContent = formatted;
+            
+            // Update QAM symbols
+            const symbolsText = symbolBuffer.slice(0, 4).map(s => 
+                `${s.I.toFixed(1)}${s.Q >= 0 ? '+' : ''}${s.Q.toFixed(1)}j`
+            ).join(', ') + '...';
+            document.getElementById('qamSymbols').textContent = symbolsText;
+        }
+
+        // Toggle transmission
+        function toggleTransmission() {
+            isTransmitting = !isTransmitting;
+            const btn = document.getElementById('transmitBtn');
+            
+            if (isTransmitting) {
+                btn.textContent = '⏸️ Stop Transmission';
+                btn.classList.add('active');
+                startTransmission();
+            } else {
+                btn.textContent = '▶️ Start Transmission';
+                btn.classList.remove('active');
+                stopTransmission();
+            }
+        }
+
+        // Start transmission animation
+        function startTransmission() {
+            // Animate bit streams
+            document.getElementById('inputData').classList.add('animated');
+            
+            // Start signal flow animation
+            animateSignalFlow();
+            
+            // Animate waveforms
+            animateWaveforms();
+            
+            // Update lock status with delay
+            updateLockStatus();
+            
+            // Start continuous data generation
+            animationIds.dataGen = setInterval(() => {
+                // Generate new bits
+                const newBits = generateBitStream(8);
+                dataBuffer = dataBuffer.substr(8) + newBits;
+                
+                // Update symbols
+                symbolBuffer = bitsToQAMSymbols(dataBuffer, modulationOrder);
+                
+                // Update displays
+                updateDataDisplay();
+                updateReceiverData();
+            }, 2000);
+        }
+
+        // Stop transmission
+        function stopTransmission() {
+            // Stop animations
+            document.getElementById('inputData').classList.remove('animated');
+            
+            // Clear intervals
+            Object.keys(animationIds).forEach(key => {
+                cancelAnimationFrame(animationIds[key]);
+                clearInterval(animationIds[key]);
+            });
+            
+            // Reset displays
+            document.getElementById('outputData').textContent = '---- ---- ---- ---- ---- ---- ---- ----';
+            document.getElementById('recoveredSymbols').textContent = 'Waiting...';
+            resetLockStatus();
+        }
+
+        // Animate signal flow through channel
+        function animateSignalFlow() {
+            const container = document.getElementById('signalFlow');
+            container.innerHTML = '';
+            
+            function createParticle() {
+                const particle = document.createElement('div');
+                particle.className = 'signal-particle';
+                particle.style.top = Math.random() * 100 + '%';
+                container.appendChild(particle);
+                
+                setTimeout(() => particle.remove(), 3000);
+            }
+            
+            animationIds.particles = setInterval(createParticle, 200);
+        }
+
+        // Animate waveforms
+        function animateWaveforms() {
+            function animate() {
+                time += 0.05;
+                
+                drawWaveform('basebandCanvas', 'baseband');
+                drawWaveform('rfCanvas', 'carrier');
+                drawWaveform('rxRfCanvas', 'received');
+                drawWaveform('demodCanvas', 'demodulated');
+                drawChannelResponse();
+                drawConstellation('txConstellationCanvas', true);
+                drawConstellation('rxConstellationCanvas', false);
+                drawEyeDiagram();
+                drawSpectrum();
+                
+                if (isTransmitting) {
+                    animationIds.waveforms = requestAnimationFrame(animate);
+                }
+            }
+            
+            animate();
+        }
+
+        // Draw waveform
+        function drawWaveform(canvasId, type) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const width = canvas.parentElement.offsetWidth;
+            canvas.width = width;
+            canvas.height = 100;
+
+            // Clear
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, width, 100);
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, 50);
+            ctx.lineTo(width, 50);
+            ctx.stroke();
+
+            // Draw waveform
+            ctx.strokeStyle = type === 'received' || type === 'demodulated' ? '#00a8ff' : '#00ff88';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            for (let x = 0; x < width; x++) {
+                let y = 50;
+                const t = time + x * 0.01;
+                
+                switch(type) {
+                    case 'baseband':
+                        // I/Q components
+                        const symbolIndex = Math.floor(t / 2) % symbolBuffer.length;
+                        const symbol = symbolBuffer[symbolIndex] || { I: 0, Q: 0 };
+                        y += symbol.I * 20 * Math.sin(t * 0.5) + symbol.Q * 20 * Math.cos(t * 0.5);
+                        break;
+                        
+                    case 'carrier':
+                        y += 30 * Math.sin(t * 10);
+                        break;
+                        
+                    case 'received':
+                        y += 30 * Math.sin(t * 10 + (channelEnabled ? 0.5 : 0));
+                        if (noiseLevel > 0) y += (Math.random() - 0.5) * noiseLevel * 20;
+                        if (fadingEnabled) y *= (1 + 0.3 * Math.sin(t * 0.1));
+                        break;
+                        
+                    case 'demodulated':
+                        // Recovered baseband
+                        const rxSymbolIndex = Math.floor(t / 2) % symbolBuffer.length;
+                        const rxSymbol = symbolBuffer[rxSymbolIndex] || { I: 0, Q: 0 };
+                        y += rxSymbol.I * 15 * Math.sin(t * 0.5) + rxSymbol.Q * 15 * Math.cos(t * 0.5);
+                        if (noiseLevel > 0) y += (Math.random() - 0.5) * noiseLevel * 10;
+                        break;
+                }
+                
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            
+            ctx.stroke();
+        }
+
+        // Draw constellation
+        function drawConstellation(canvasId, isTx) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            canvas.width = 200;
+            canvas.height = 200;
+
+            // Clear
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillRect(0, 0, 200, 200);
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            
+            // Axes
+            ctx.beginPath();
+            ctx.moveTo(100, 0);
+            ctx.lineTo(100, 200);
+            ctx.moveTo(0, 100);
+            ctx.lineTo(200, 100);
+            ctx.stroke();
+
+            // Draw constellation points
+            const sqrtOrder = Math.sqrt(modulationOrder);
+            const scale = 80 / (sqrtOrder - 1);
+            
+            for (let i = 0; i < sqrtOrder; i++) {
+                for (let j = 0; j < sqrtOrder; j++) {
+                    const I = (i - sqrtOrder/2 + 0.5) * 2 / (sqrtOrder - 1);
+                    const Q = (j - sqrtOrder/2 + 0.5) * 2 / (sqrtOrder - 1);
+                    
+                    let px = 100 + I * scale;
+                    let py = 100 - Q * scale;
+                    
+                    // Add channel effects to received constellation
+                    if (!isTx && isTransmitting) {
+                        if (noiseLevel > 0) {
+                            px += (Math.random() - 0.5) * noiseLevel * 15;
+                            py += (Math.random() - 0.5) * noiseLevel * 15;
+                        }
+                        if (fadingEnabled) {
+                            const fade = 0.7 + 0.3 * Math.sin(time * 0.1);
+                            px = 100 + (px - 100) * fade;
+                            py = 100 + (py - 100) * fade;
+                        }
+                        if (channelEnabled) {
+                            // Add phase rotation
+                            const angle = time * 0.02;
+                            const x = px - 100;
+                            const y = py - 100;
+                            px = 100 + x * Math.cos(angle) - y * Math.sin(angle);
+                            py = 100 + x * Math.sin(angle) + y * Math.cos(angle);
+                        }
+                    }
+                    
+                    ctx.beginPath();
+                    ctx.arc(px, py, isTx ? 4 : 3, 0, 2 * Math.PI);
+                    ctx.fillStyle = isTx ? '#00ff88' : '#00a8ff';
+                    ctx.fill();
+                    
+                    // Add glow effect for active transmission
+                    if (isTransmitting) {
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = isTx ? '#00ff88' : '#00a8ff';
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    }
+                }
+            }
+
+            // Labels
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#fff';
+            ctx.fillText('I', 185, 98);
+            ctx.fillText('Q', 102, 15);
+        }
+
+        // Draw channel response
+        function drawChannelResponse() {
+            const canvas = document.getElementById('channelCanvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const width = canvas.parentElement.offsetWidth;
+            canvas.width = width;
+            canvas.height = 100;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillRect(0, 0, width, 100);
+
+            // Draw frequency response
+            ctx.strokeStyle = '#00a8ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            for (let x = 0; x < width; x++) {
+                const freq = x / width * 10;
+                let magnitude = 70;
+                
+                if (channelEnabled) {
+                    // Add frequency selective fading
+                    magnitude *= (1 - 0.3 * Math.sin(freq * 3 + time * 0.1));
+                    if (fadingEnabled) {
+                        magnitude *= (0.5 + 0.5 * Math.cos(freq * 2));
+                    }
+                }
+                
+                if (x === 0) ctx.moveTo(x, 100 - magnitude);
+                else ctx.lineTo(x, 100 - magnitude);
+            }
+            
+            ctx.stroke();
+
+            // Labels
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#888';
+            ctx.fillText('0 MHz', 5, 95);
+            ctx.fillText('10 MHz', width - 40, 95);
+            ctx.fillText('0 dB', 5, 35);
+            ctx.fillText('-20 dB', 5, 95);
+        }
+
+        // Draw BER curve
+        function drawBERCurve() {
+            const canvas = document.getElementById('berCurve');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.parentElement.offsetWidth - 40;
+            canvas.height = 200;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillRect(0, 0, canvas.width, 200);
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i <= 5; i++) {
+                const x = i * canvas.width / 5;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, 200);
+                ctx.stroke();
+            }
+
+            // Draw curves for different modulation orders
+            const orders = [4, 16, 64, 256];
+            const colors = ['#00ff88', '#00a8ff', '#ff8844', '#ff4444'];
+            
+            orders.forEach((order, idx) => {
+                ctx.strokeStyle = colors[idx];
+                ctx.lineWidth = order === modulationOrder ? 3 : 1;
+                ctx.beginPath();
+                
+                for (let x = 0; x < canvas.width; x++) {
+                    const snr = x / canvas.width * 30;
+                    const k = Math.log2(order);
+                    const ber = 0.2 * Math.exp(-1.5 * snr / (2 * k - 1));
+                    const y = 180 - Math.log10(1/ber) * 30;
+                    
+                    if (x === 0) ctx.moveTo(x, Math.min(y, 180));
+                    else ctx.lineTo(x, Math.min(y, 180));
+                }
+                
+                ctx.stroke();
+            });
+
+            // Current operating point
+            const currentSNR = channelEnabled ? (noiseLevel > 0 ? 15 : 25) : 30;
+            const opX = currentSNR / 30 * canvas.width;
+            ctx.beginPath();
+            ctx.arc(opX, 50, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+
+            // Legend
+            ctx.font = '11px Arial';
+            orders.forEach((order, idx) => {
+                ctx.fillStyle = colors[idx];
+                ctx.fillText(`${order}-QAM`, 10, 15 + idx * 15);
+            });
+        }
+
+        // Draw eye diagram
+        function drawEyeDiagram() {
+            const canvas = document.getElementById('eyeDiagram');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.parentElement.offsetWidth - 40;
+            canvas.height = 150;
+
+            // Create persistence effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, 150);
+
+            if (!isTransmitting) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+                ctx.fillRect(0, 0, canvas.width, 150);
+                return;
+            }
+
+            // Draw eye traces
+            for (let trace = 0; trace < 3; trace++) {
+                ctx.strokeStyle = `rgba(0, 255, 136, 0.5)`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+
+                const offset = Math.random() * Math.PI * 2;
+                for (let x = 0; x < canvas.width; x++) {
+                    const t = x / canvas.width * 2 * Math.PI;
+                    let y = 75 + 40 * Math.sin(t + offset);
+                    
+                    // Add impairments
+                    if (channelEnabled) {
+                        y += (Math.random() - 0.5) * 5;
+                        if (noiseLevel > 0) y += (Math.random() - 0.5) * noiseLevel * 30;
+                        if (fadingEnabled) y *= 0.8;
+                    }
+                    
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                
+                ctx.stroke();
+            }
+
+            // Decision levels
+            ctx.strokeStyle = 'rgba(255, 68, 68, 0.5)';
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, 35);
+            ctx.lineTo(canvas.width, 35);
+            ctx.moveTo(0, 115);
+            ctx.lineTo(canvas.width, 115);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // Draw spectrum
+        function drawSpectrum() {
+            const canvas = document.getElementById('spectrum');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.parentElement.offsetWidth - 40;
+            canvas.height = 150;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, 150);
+
+            if (!isTransmitting) return;
+
+            // Draw spectrum bars
+            const bars = 64;
+            const barWidth = canvas.width / bars;
+            
+            for (let i = 0; i < bars; i++) {
+                const freq = i - bars/2;
+                let magnitude = 0;
+                
+                // Main signal spectrum
+                if (Math.abs(freq) < 10) {
+                    magnitude = 100 * Math.exp(-Math.abs(freq) * 0.1);
+                }
+                
+                // Add noise floor
+                if (channelEnabled && noiseLevel > 0) {
+                    magnitude += noiseLevel * 20 * Math.random();
+                }
+                
+                // Animated effect
+                magnitude *= (0.8 + 0.2 * Math.sin(time * 2 + i * 0.5));
+                
+                const height = magnitude;
+                const hue = 120 - magnitude * 1.2;
+                
+                ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+                ctx.fillRect(i * barWidth, 150 - height, barWidth - 1, height);
+            }
+
+            // Center frequency marker
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(canvas.width/2, 0);
+            ctx.lineTo(canvas.width/2, 150);
+            ctx.stroke();
+        }
+
+        // Update lock status
+        function updateLockStatus() {
+            const locks = [
+                { id: 'coarseAGC', delay: 500 },
+                { id: 'phaseLock', delay: 1000 },
+                { id: 'dspLock', delay: 1500 },
+                { id: 'preambleLock', delay: 2000 }
+            ];
+
+            locks.forEach(({ id, delay }) => {
+                setTimeout(() => {
+                    const element = document.getElementById(id);
+                    const shouldLock = !channelEnabled || (noiseLevel < 0.5 && !fadingEnabled);
+                    
+                    if (shouldLock) {
+                        element.classList.add('locked');
+                        element.classList.remove('unlocked');
+                        element.querySelector('.lock-indicator').textContent = 'Locked';
+                    } else {
+                        element.classList.remove('locked');
+                        element.classList.add('unlocked');
+                        element.querySelector('.lock-indicator').textContent = 'Unlocked';
+                    }
+                }, delay);
+            });
+        }
+
+        // Reset lock status
+        function resetLockStatus() {
+            const locks = ['coarseAGC', 'phaseLock', 'dspLock', 'preambleLock'];
+            locks.forEach(id => {
+                const element = document.getElementById(id);
+                element.classList.remove('locked', 'unlocked');
+                element.querySelector('.lock-indicator').textContent = 'Searching...';
+            });
+        }
+
+        // Update receiver data
+        function updateReceiverData() {
+            if (!isTransmitting) return;
+            
+            let outputBits = dataBuffer;
+            let errors = 0;
+            
+            // Simulate bit errors
+            if (channelEnabled && (noiseLevel > 0 || fadingEnabled)) {
+                const errorRate = noiseLevel * 0.1 + (fadingEnabled ? 0.05 : 0);
+                outputBits = dataBuffer.split('').map((bit, idx) => {
+                    if (Math.random() < errorRate) {
+                        errors++;
+                        return bit === '0' ? '1' : '0';
+                    }
+                    return bit;
+                }).join('');
+            }
+            
+            // Format output with error highlighting
+            let formatted = '';
+            for (let i = 0; i < outputBits.length; i += 4) {
+                if (i > 0) formatted += ' ';
+                let chunk = '';
+                for (let j = 0; j < 4 && i + j < outputBits.length; j++) {
+                    if (outputBits[i + j] !== dataBuffer[i + j]) {
+                        chunk += `<span class="error-bit">${outputBits[i + j]}</span>`;
+                    } else {
+                        chunk += outputBits[i + j];
+                    }
+                }
+                formatted += chunk;
+            }
+            
+            document.getElementById('outputData').innerHTML = formatted;
+            document.getElementById('errorCount').textContent = errors;
+            document.getElementById('berValue').textContent = (errors / dataBuffer.length).toFixed(4);
+            
+            // Update error color
+            if (errors > 0) {
+                document.getElementById('errorCount').classList.add('error');
+                document.getElementById('berValue').classList.add('error');
+            } else {
+                document.getElementById('errorCount').classList.remove('error');
+                document.getElementById('berValue').classList.remove('error');
+            }
+            
+            // Update recovered symbols
+            const recoveredText = symbolBuffer.slice(0, 4).map((s, idx) => {
+                const hasError = idx < errors;
+                const text = `${s.I.toFixed(1)}${s.Q >= 0 ? '+' : ''}${s.Q.toFixed(1)}j`;
+                return hasError ? `<span class="error-bit">${text}</span>` : text;
+            }).join(', ') + '...';
+            
+            document.getElementById('recoveredSymbols').innerHTML = recoveredText;
+        }
+
+        // Toggle channel effects
+        function toggleChannel() {
+            channelEnabled = !channelEnabled;
+            const toggle = document.getElementById('channelToggle');
+            
+            if (channelEnabled) {
+                toggle.classList.add('active');
+                updateChannelEffects();
+            } else {
+                toggle.classList.remove('active');
+                resetChannelEffects();
+            }
+            
+            if (isTransmitting) {
+                updateLockStatus();
+                updateReceiverData();
+            }
+        }
+
+        // Update channel effects display
+        function updateChannelEffects() {
+            // Highlight active effects
+            document.querySelectorAll('.effect-item').forEach(el => {
+                el.classList.add('active');
+            });
+            
+            // Update values
+            document.getElementById('snrValue').textContent = noiseLevel > 0 ? '15 dB' : '25 dB';
+            document.getElementById('fadingValue').textContent = fadingEnabled ? '-8.5 dB' : '-2.5 dB';
+            document.getElementById('freqOffset').textContent = channelEnabled ? '+250 Hz' : '+50 Hz';
+            document.getElementById('phaseNoise').textContent = channelEnabled ? '-75 dBc/Hz' : '-90 dBc/Hz';
+            document.getElementById('timingJitter').textContent = channelEnabled ? '±3.5 ns' : '±1.0 ns';
+            
+            // Update value colors
+            if (channelEnabled) {
+                document.querySelectorAll('.effect-value').forEach(el => {
+                    el.classList.add('degraded');
+                });
+            }
+        }
+
+        // Reset channel effects display
+        function resetChannelEffects() {
+            document.querySelectorAll('.effect-item').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.effect-value').forEach(el => {
+                el.classList.remove('degraded');
+            });
+            
+            // Reset values
+            document.getElementById('snrValue').textContent = '30 dB';
+            document.getElementById('fadingValue').textContent = '-0.5 dB';
+            document.getElementById('freqOffset').textContent = '+50 Hz';
+            document.getElementById('phaseNoise').textContent = '-90 dBc/Hz';
+            document.getElementById('timingJitter').textContent = '±1.0 ns';
+        }
+
+        // Add noise
+        function addNoise() {
+            noiseLevel = noiseLevel === 0 ? 0.5 : 0;
+            if (channelEnabled) {
+                updateChannelEffects();
+            }
+            if (isTransmitting) {
+                updateReceiverData();
+            }
+        }
+
+        // Toggle fading
+        function toggleFading() {
+            fadingEnabled = !fadingEnabled;
+            if (channelEnabled) {
+                updateChannelEffects();
+            }
+            if (isTransmitting) {
+                updateReceiverData();
+            }
+        }
+
+        // Change modulation order
+        function changeModulation() {
+            modulationOrder = parseInt(document.getElementById('modOrder').value);
+            symbolBuffer = bitsToQAMSymbols(dataBuffer, modulationOrder);
+            updateDataDisplay();
+            drawBERCurve();
+            
+            if (isTransmitting) {
+                updateReceiverData();
+            }
+        }
+
+        // Reset system
+        function resetSystem() {
+            // Stop transmission
+            if (isTransmitting) {
+                toggleTransmission();
+            }
+            
+            // Reset states
+            channelEnabled = false;
+            noiseLevel = 0;
+            fadingEnabled = false;
+            modulationOrder = 16;
+            
+            // Reset UI
+            document.getElementById('channelToggle').classList.remove('active');
+            document.getElementById('modOrder').value = '16';
+            
+            // Reset displays
+            resetChannelEffects();
+            resetLockStatus();
+            
+            // Reinitialize
+            initializeSystem();
+        }
+
+        // Initialize canvases
+        function initializeCanvases() {
+            drawConstellation('txConstellationCanvas', true);
+            drawConstellation('rxConstellationCanvas', false);
+            drawBERCurve();
+            
+            // Clear waveforms
+            ['basebandCanvas', 'rfCanvas', 'rxRfCanvas', 'demodCanvas', 'channelCanvas', 'eyeDiagram', 'spectrum'].forEach(id => {
+                const canvas = document.getElementById(id);
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = canvas.parentElement.offsetWidth;
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+            });
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            initializeSystem();
+        });
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            initializeCanvases();
+        });
+    </script>
+</body>
+</html>
